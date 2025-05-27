@@ -35,59 +35,20 @@ def remap_ctrl_to_cmd():
     print("Remap complete.")
     bpy.ops.wm.save_userpref()
 
-def backup_keymap():
-    print("Backing up current keymap to:", BACKUP_PATH)
-    bpy.ops.wm.save_userpref()
-    
-    kc = bpy.context.window_manager.keyconfigs.user
-    with open(BACKUP_PATH, 'w', encoding='utf-8') as f:
-        f.write("# Keymap backup by Ctrl-to-Cmd plugin\n")
-        for km in kc.keymaps:
-            for item in km.keymap_items:
-                f.write(f"# {km.name}: {item.name} | type={item.type}, ctrl={item.ctrl}, oskey={item.oskey}, alt={item.alt}, shift={item.shift}\n")
-    print("Backup complete.")
+# def backup_keymap():
+#     bpy.ops.wm.save_userpref()
+#     bpy.ops.preferences.keyconfig_export(filepath=BACKUP_PATH)
+#     print(f"Keymap backed up to: {BACKUP_PATH}")
 
-def restore_keymap():
-    if not os.path.exists(BACKUP_PATH):
-        print("Backup file not found:", BACKUP_PATH)
-        return
 
-    print("Restoring keymap from:", BACKUP_PATH)
-    kc = bpy.context.window_manager.keyconfigs.user
+# def restore_keymap():
+#     if not os.path.exists(BACKUP_PATH):
+#         print("Backup not found:", BACKUP_PATH)
+#         return
 
-    with open(BACKUP_PATH, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    for line in lines:
-        if line.startswith("#") and "type=" in line:
-            try:
-                parts = line.strip().split("|")
-                km_name = parts[0].split(":")[1].strip()
-                key_type = parts[1].split(",")[0].split("=")[1].strip()
-
-                # Parse modifier flags
-                ctrl = "ctrl=True" in parts[1]
-                oskey = "oskey=True" in parts[1]
-                alt = "alt=True" in parts[1]
-                shift = "shift=True" in parts[1]
-
-                keymap = kc.keymaps.get(km_name)
-                if not keymap:
-                    continue
-
-                for item in keymap.keymap_items:
-                    if (item.type == key_type and
-                        item.ctrl == False and item.oskey == True and
-                        item.alt == alt and item.shift == shift):
-                        item.ctrl = True
-                        item.oskey = False
-
-            except Exception as e:
-                print("Error parsing line:", line)
-                print("Exception:", e)
-
-    bpy.ops.wm.save_userpref()
-    print("Keymap restore complete.")
+#     bpy.ops.preferences.keyconfig_import(filepath=BACKUP_PATH)
+#     bpy.ops.wm.save_userpref()
+#     print(f"Keymap restored from: {BACKUP_PATH}")
 
 class KEYMAP_OT_remap_ctrl_to_cmd(bpy.types.Operator):
     bl_idname = "wm.remap_ctrl_to_cmd"
@@ -98,23 +59,23 @@ class KEYMAP_OT_remap_ctrl_to_cmd(bpy.types.Operator):
         self.report({'INFO'}, "Converted Ctrl to Cmd.")
         return {'FINISHED'}
 
-class KEYMAP_OT_backup_keymap(bpy.types.Operator):
-    bl_idname = "wm.backup_keymap"
-    bl_label = "Backup Keymap"
+# class KEYMAP_OT_backup_keymap(bpy.types.Operator):
+#     bl_idname = "wm.backup_keymap"
+#     bl_label = "Backup Keymap"
 
-    def execute(self, context):
-        backup_keymap()
-        self.report({'INFO'}, "Keymap backed up.")
-        return {'FINISHED'}
+#     def execute(self, context):
+#         backup_keymap()
+#         self.report({'INFO'}, "Keymap backed up.")
+#         return {'FINISHED'}
 
-class KEYMAP_OT_restore_keymap(bpy.types.Operator):
-    bl_idname = "wm.restore_keymap"
-    bl_label = "Restore Keymap"
+# class KEYMAP_OT_restore_keymap(bpy.types.Operator):
+#     bl_idname = "wm.restore_keymap"
+#     bl_label = "Restore Original Keymap"
 
-    def execute(self, context):
-        restore_keymap()
-        self.report({'INFO'}, "Keymap restored.")
-        return {'FINISHED'}
+#     def execute(self, context):
+#         restore_keymap()
+#         self.report({'INFO'}, "Restored original keymap.")
+#         return {'FINISHED'}
 
 class KEYMAP_PT_ctrl2cmd_panel(bpy.types.AddonPreferences):
     bl_idname = __name__
@@ -123,15 +84,15 @@ class KEYMAP_PT_ctrl2cmd_panel(bpy.types.AddonPreferences):
         layout = self.layout
         col = layout.column()
         col.label(text="Keymap Remap (macOS)")
-        col.operator("wm.backup_keymap", icon='FILE_BACKUP')
+        # col.operator("wm.backup_keymap", icon='FILE_BACKUP')
         col.operator("wm.remap_ctrl_to_cmd", icon='TOOL_SETTINGS')
-        col.operator("wm.restore_keymap", icon='FILE_REFRESH')
+        # col.operator("wm.restore_keymap", icon='FILE_REFRESH')
         col.label(text=f"Backup path: {BACKUP_PATH}", icon='INFO')
 
 classes = (
     KEYMAP_OT_remap_ctrl_to_cmd,
-    KEYMAP_OT_backup_keymap,
-    KEYMAP_OT_restore_keymap,
+    # KEYMAP_OT_backup_keymap,
+    # KEYMAP_OT_restore_keymap,
     KEYMAP_PT_ctrl2cmd_panel,
 )
 
