@@ -2,10 +2,10 @@ bl_info = {
     "name": "Ctrl to Cmd Keymap Converter (macOS)",
     "author": "ZJ Design Lab",
     "version": (0, 1),
-    "blender": (2, 80, 0),
+    "blender": (4, 1, 0),
     "location": "Preferences > Add-ons",
     "description": "Convert all Ctrl shortcuts to Cmd (oskey) on macOS.",
-    "category": "Interface",
+    "category": "System",
 }
 
 import bpy

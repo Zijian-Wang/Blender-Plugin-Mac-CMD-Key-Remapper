@@ -20,7 +20,7 @@ In **Preferences → Keymap** tab:
 
 - Click **Remap Ctrl to Cmd** to apply changes
 
-## Notes
+## Known Issues
 
 - There's no backup feature at this moment, please export your keymaps before the operation!
 
