@@ -5,8 +5,6 @@ A Blender add-on for macOS that automatically replaces all `Ctrl` shortcuts with
 ## Features
 
 - Replace all `Ctrl` modifiers with `Cmd` (macOS only)
-- Automatically backs up current keymap before modifying
-- One-click restore to original keymap
 
 ## Installation
 
@@ -21,12 +19,10 @@ A Blender add-on for macOS that automatically replaces all `Ctrl` shortcuts with
 In **Preferences → Keymap** tab:
 
 - Click **Remap Ctrl to Cmd** to apply changes
-- Click **Revert to Original Keymap** to restore previous state
 
 ## Notes
 
-- Backup is saved to:
-  ~/Library/Application Support/Blender/{version}/config/keymap_backup.json
+- There's no backup feature at this moment, please export your keymaps before the operation!
 
 ## License
 
