@@ -1,146 +1,149 @@
 bl_info = {
-    "name": "Mac Cmd Key Remapper with Backup",
+    "name": "Ctrl to Cmd Keymap Converter (macOS)",
+    "author": "ChatGPT & You",
+    "version": (1, 0),
     "blender": (2, 80, 0),
+    "location": "Preferences > Add-ons",
+    "description": "Convert all Ctrl shortcuts to Cmd (oskey) on macOS, with backup/restore.",
     "category": "Interface",
-    "author": "Your Name",
-    "version": (1, 1),
-    "description": "Replace Ctrl with Cmd in keymaps on macOS, with backup and revert support"
 }
 
 import bpy
-import platform
 import os
-import json
+import platform
 
-BACKUP_PATH = os.path.join(bpy.utils.user_resource('CONFIG'), "keymap_backup.json")
+BACKUP_PATH = os.path.join(
+    bpy.utils.user_resource('CONFIG'),
+    "keyconfig_ctrl2cmd_backup.py"
+)
 
-def backup_keymap():
-    kc = bpy.context.window_manager.keyconfigs.user
-    keymap_data = []
-
-    for keymap in kc.keymaps:
-        for item in keymap.keymap_items:
-            keymap_data.append({
-                'idname': item.idname,
-                'type': item.type,
-                'value': item.value,
-                'ctrl': item.ctrl,
-                'alt': item.alt,
-                'shift': item.shift,
-                'oskey': item.oskey,
-                'keymap_name': keymap.name,
-                'keymap_space_type': keymap.space_type,
-                'keymap_region_type': keymap.region_type,
-            })
-
-    with open(BACKUP_PATH, 'w') as f:
-        json.dump(keymap_data, f, indent=2)
+def is_mouse_related(item):
+    return item.type in {
+        "LEFTMOUSE", "RIGHTMOUSE", "MIDDLEMOUSE",
+        "WHEELUPMOUSE", "WHEELDOWNMOUSE", "MOUSEMOVE"
+    }
 
 def remap_ctrl_to_cmd():
     kc = bpy.context.window_manager.keyconfigs.user
-
+    print("Starting keymap remap...")
     for keymap in kc.keymaps:
         for item in keymap.keymap_items:
-            if item.ctrl and not item.oskey:
+            if item.ctrl and not item.oskey and not is_mouse_related(item):
+                print(f"Remapping: {keymap.name} - {item.name}")
                 item.ctrl = False
                 item.oskey = True
+    print("Remap complete.")
+    bpy.ops.wm.save_userpref()
+
+def backup_keymap():
+    print("Backing up current keymap to:", BACKUP_PATH)
+    bpy.ops.wm.save_userpref()
+    
+    kc = bpy.context.window_manager.keyconfigs.user
+    with open(BACKUP_PATH, 'w', encoding='utf-8') as f:
+        f.write("# Keymap backup by Ctrl-to-Cmd plugin\n")
+        for km in kc.keymaps:
+            for item in km.keymap_items:
+                f.write(f"# {km.name}: {item.name} | type={item.type}, ctrl={item.ctrl}, oskey={item.oskey}, alt={item.alt}, shift={item.shift}\n")
+    print("Backup complete.")
 
 def restore_keymap():
     if not os.path.exists(BACKUP_PATH):
-        return False
+        print("Backup file not found:", BACKUP_PATH)
+        return
 
-    with open(BACKUP_PATH, 'r') as f:
-        keymap_data = json.load(f)
-
+    print("Restoring keymap from:", BACKUP_PATH)
     kc = bpy.context.window_manager.keyconfigs.user
 
-    for keymap in kc.keymaps:
-        for item in list(keymap.keymap_items):
-            keymap.keymap_items.remove(item)
+    with open(BACKUP_PATH, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
 
-    for entry in keymap_data:
-        km = kc.keymaps.get(entry['keymap_name'])
-        if not km:
-            continue
-        try:
-            kmi = km.keymap_items.new(
-                idname=entry['idname'],
-                type=entry['type'],
-                value=entry['value']
-            )
-            kmi.ctrl = entry['ctrl']
-            kmi.alt = entry['alt']
-            kmi.shift = entry['shift']
-            kmi.oskey = entry['oskey']
-        except:
-            pass  # Ignore if fails to restore a specific keymap item
+    for line in lines:
+        if line.startswith("#") and "type=" in line:
+            try:
+                parts = line.strip().split("|")
+                km_name = parts[0].split(":")[1].strip()
+                key_type = parts[1].split(",")[0].split("=")[1].strip()
 
-    return True
+                # Parse modifier flags
+                ctrl = "ctrl=True" in parts[1]
+                oskey = "oskey=True" in parts[1]
+                alt = "alt=True" in parts[1]
+                shift = "shift=True" in parts[1]
 
-class RemapCtrlToCmdOperator(bpy.types.Operator):
+                keymap = kc.keymaps.get(km_name)
+                if not keymap:
+                    continue
+
+                for item in keymap.keymap_items:
+                    if (item.type == key_type and
+                        item.ctrl == False and item.oskey == True and
+                        item.alt == alt and item.shift == shift):
+                        item.ctrl = True
+                        item.oskey = False
+
+            except Exception as e:
+                print("Error parsing line:", line)
+                print("Exception:", e)
+
+    bpy.ops.wm.save_userpref()
+    print("Keymap restore complete.")
+
+class KEYMAP_OT_remap_ctrl_to_cmd(bpy.types.Operator):
     bl_idname = "wm.remap_ctrl_to_cmd"
-    bl_label = "Remap Ctrl to Cmd"
-    bl_description = "Replace all Ctrl shortcuts with Cmd (macOS only)"
+    bl_label = "Convert Ctrl to Cmd"
 
     def execute(self, context):
-        if platform.system() != 'Darwin':
-            self.report({'WARNING'}, "This only works on macOS")
-            return {'CANCELLED'}
-
-        backup_keymap()
         remap_ctrl_to_cmd()
-        self.report({'INFO'}, "Remapped Ctrl to Cmd and backup saved")
+        self.report({'INFO'}, "Converted Ctrl to Cmd.")
         return {'FINISHED'}
 
-class RestoreOriginalKeymapOperator(bpy.types.Operator):
-    bl_idname = "wm.restore_keymap_backup"
-    bl_label = "Revert to Original Keymap"
-    bl_description = "Restore keymap from backup"
+class KEYMAP_OT_backup_keymap(bpy.types.Operator):
+    bl_idname = "wm.backup_keymap"
+    bl_label = "Backup Keymap"
 
     def execute(self, context):
-        if restore_keymap():
-            self.report({'INFO'}, "Original keymap restored")
-            return {'FINISHED'}
-        else:
-            self.report({'ERROR'}, "No backup found")
-            return {'CANCELLED'}
+        backup_keymap()
+        self.report({'INFO'}, "Keymap backed up.")
+        return {'FINISHED'}
 
-# class CmdKeyRemapPanel(bpy.types.Panel):
-#     bl_label = "Mac Cmd Key Remapper"
-#     bl_idname = "VIEW3D_PT_cmd_key_remapper"
-#     bl_space_type = 'PREFERENCES'
-#     bl_region_type = 'WINDOW'
-#     bl_context = "keymap"
+class KEYMAP_OT_restore_keymap(bpy.types.Operator):
+    bl_idname = "wm.restore_keymap"
+    bl_label = "Restore Keymap"
 
-#     def draw(self, context):
-#         layout = self.layout
-#         layout.operator("wm.remap_ctrl_to_cmd", icon='KEYINGSET')
-#         layout.operator("wm.restore_keymap_backup", icon='FILE_REFRESH')
+    def execute(self, context):
+        restore_keymap()
+        self.report({'INFO'}, "Keymap restored.")
+        return {'FINISHED'}
 
-class CmdKeyRemapPreferences(bpy.types.AddonPreferences):
+class KEYMAP_PT_ctrl2cmd_panel(bpy.types.AddonPreferences):
     bl_idname = __name__
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="Remap and Restore Keymap")
-        layout.operator("wm.remap_ctrl_to_cmd", icon='KEYINGSET')
-        layout.operator("wm.restore_keymap_backup", icon='FILE_REFRESH')
+        col = layout.column()
+        col.label(text="Keymap Remap (macOS)")
+        col.operator("wm.backup_keymap", icon='FILE_BACKUP')
+        col.operator("wm.remap_ctrl_to_cmd", icon='TOOL_SETTINGS')
+        col.operator("wm.restore_keymap", icon='FILE_REFRESH')
+        col.label(text=f"Backup path: {BACKUP_PATH}", icon='INFO')
+
+classes = (
+    KEYMAP_OT_remap_ctrl_to_cmd,
+    KEYMAP_OT_backup_keymap,
+    KEYMAP_OT_restore_keymap,
+    KEYMAP_PT_ctrl2cmd_panel,
+)
 
 def register():
-    bpy.utils.register_class(CmdKeyRemapPreferences)
-    bpy.utils.register_class(RemapCtrlToCmdOperator)
-    bpy.utils.register_class(RestoreOriginalKeymapOperator)
-    # （你原来的面板 VIEW3D_PT_cmd_key_remapper 可删或保留）
+    if platform.system() != 'Darwin':
+        print("Warning: This plugin is intended for macOS only.")
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 def unregister():
-    bpy.utils.unregister_class(CmdKeyRemapPreferences)
-    bpy.utils.unregister_class(RemapCtrlToCmdOperator)
-    bpy.utils.unregister_class(RestoreOriginalKeymapOperator)
-
-# def unregister():
-#     bpy.utils.unregister_class(RemapCtrlToCmdOperator)
-#     bpy.utils.unregister_class(RestoreOriginalKeymapOperator)
-#     bpy.utils.unregister_class(CmdKeyRemapPanel)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
 
 if __name__ == "__main__":
     register()
