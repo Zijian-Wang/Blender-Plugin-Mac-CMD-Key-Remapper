@@ -1,10 +1,10 @@
 bl_info = {
     "name": "Ctrl to Cmd Keymap Converter (macOS)",
-    "author": "ChatGPT & You",
-    "version": (1, 0),
+    "author": "ZJ Design Lab",
+    "version": (0, 1),
     "blender": (2, 80, 0),
     "location": "Preferences > Add-ons",
-    "description": "Convert all Ctrl shortcuts to Cmd (oskey) on macOS, with backup/restore.",
+    "description": "Convert all Ctrl shortcuts to Cmd (oskey) on macOS.",
     "category": "Interface",
 }
 
@@ -35,21 +35,6 @@ def remap_ctrl_to_cmd():
     print("Remap complete.")
     bpy.ops.wm.save_userpref()
 
-# def backup_keymap():
-#     bpy.ops.wm.save_userpref()
-#     bpy.ops.preferences.keyconfig_export(filepath=BACKUP_PATH)
-#     print(f"Keymap backed up to: {BACKUP_PATH}")
-
-
-# def restore_keymap():
-#     if not os.path.exists(BACKUP_PATH):
-#         print("Backup not found:", BACKUP_PATH)
-#         return
-
-#     bpy.ops.preferences.keyconfig_import(filepath=BACKUP_PATH)
-#     bpy.ops.wm.save_userpref()
-#     print(f"Keymap restored from: {BACKUP_PATH}")
-
 class KEYMAP_OT_remap_ctrl_to_cmd(bpy.types.Operator):
     bl_idname = "wm.remap_ctrl_to_cmd"
     bl_label = "Convert Ctrl to Cmd"
@@ -59,24 +44,6 @@ class KEYMAP_OT_remap_ctrl_to_cmd(bpy.types.Operator):
         self.report({'INFO'}, "Converted Ctrl to Cmd.")
         return {'FINISHED'}
 
-# class KEYMAP_OT_backup_keymap(bpy.types.Operator):
-#     bl_idname = "wm.backup_keymap"
-#     bl_label = "Backup Keymap"
-
-#     def execute(self, context):
-#         backup_keymap()
-#         self.report({'INFO'}, "Keymap backed up.")
-#         return {'FINISHED'}
-
-# class KEYMAP_OT_restore_keymap(bpy.types.Operator):
-#     bl_idname = "wm.restore_keymap"
-#     bl_label = "Restore Original Keymap"
-
-#     def execute(self, context):
-#         restore_keymap()
-#         self.report({'INFO'}, "Restored original keymap.")
-#         return {'FINISHED'}
-
 class KEYMAP_PT_ctrl2cmd_panel(bpy.types.AddonPreferences):
     bl_idname = __name__
 
@@ -84,15 +51,11 @@ class KEYMAP_PT_ctrl2cmd_panel(bpy.types.AddonPreferences):
         layout = self.layout
         col = layout.column()
         col.label(text="Keymap Remap (macOS)")
-        # col.operator("wm.backup_keymap", icon='FILE_BACKUP')
         col.operator("wm.remap_ctrl_to_cmd", icon='TOOL_SETTINGS')
-        # col.operator("wm.restore_keymap", icon='FILE_REFRESH')
         col.label(text=f"Backup path: {BACKUP_PATH}", icon='INFO')
 
 classes = (
     KEYMAP_OT_remap_ctrl_to_cmd,
-    # KEYMAP_OT_backup_keymap,
-    # KEYMAP_OT_restore_keymap,
     KEYMAP_PT_ctrl2cmd_panel,
 )
 
